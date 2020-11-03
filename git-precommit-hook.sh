@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+## Create pre-commit symlink if unset ##
+GITDIR="";
+if [ -d .git ]; then
+  GITDIR=".git";
+elif [ -f .git ]; then
+  GITDIR=$(sed -n '/^gitdir:/{ s|.*: ||; p; }' .git);
+fi
+if [ ! -d "$GITDIR" ]; then
+  echo "${0##*/}: error: unable to find git directory" 1>&2;
+  exit 1;
+fi
+if [ ! -h "$GITDIR/hooks/pre-commit" ]; then
+  if [ $(realpath --help 2>&1 | grep -c relative) != 0 ]; then
+    HOOK=$(realpath --relative-to="$GITDIR/hooks" ./githook-pre-commit);
+  else
+    HOOK=$(readlink -f ./githook-pre-commit);
+  fi
+  ln -fs "$HOOK" "$GITDIR/hooks/pre-commit";
+  echo "${0##*/}: creating git pre-commit hook symlink" 1>&2;
+  exit 1;
+fi
+
+## Check files that changed ##
+FILES=( $(git status --porcelain | sed -r 's|^ |_|; s|^(.) |\1_|; s|^(R[_M]) .* ->|\1|;' | grep -E '^([MRA]|.M)') );
+V=$(date -u +%Y.%m.%d);
+
+check_change_after_staged () {
+  [ "${2:1:1}" = "M" ] &&
+    echo "${0##*/}: error: changed after staged: $1" 1>&2 &&
+    exit 1;
+}
+
+update_file_version () {
+  sed -r -i 's|([$"])Version:[^$"]*([$"])|\1Version: '"$V"'\2|' "$1";
+  git add "$1";
+}
+
+n=1;
+while [ "$n" -lt "${#FILES[@]}" ]; do
+  check_change_after_staged "${FILES[$n]}" "${FILES[$((n-1))]}";
+  update_file_version "${FILES[$n]}";
+  n=$((n+2));
+done
+
+## Update documentation ##
+./docker-cli --help > README.md;
+git add README.md;
+
+exit 0;

@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<checkstyle version='4.3'>
+<file name='myscript' >
+<error line='2' column='6' severity='warning' message='In POSIX sh&#44; echo flags are undefined.' source='ShellCheck.SC2039' />
+<error line='2' column='9' severity='info' message='Double quote to prevent globbing and word splitting.' source='ShellCheck.SC2086' />
+</file>
+<file name='myotherscript' >
+<error line='2' column='2' severity='error' message='You need a space after the &#91; and before the &#93;.' source='ShellCheck.SC1035' />
+</file>
+</checkstyle>
